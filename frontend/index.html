@@ -1,0 +1,26 @@
+<div class="main-content">
+    <h3>🤖 AI Code Fixer</h3>
+    <div class="form-card" style="flex-direction: column;">
+        <textarea id="aiCodeInput" rows="5" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;" placeholder="Apna kharab code yahan paste karein..."></textarea>
+        <button class="add-btn" style="background: #764ba2; margin-top: 10px;" onclick="askAI()">Fix My Code with AI</button>
+        <div id="aiResult" style="margin-top: 15px; padding: 15px; background: #e8f5e9; border-radius: 8px; display: none;">
+            <strong>AI Solution:</strong> <pre id="solutionText"></pre>
+        </div>
+    </div>
+
+    </div>
+
+<script>
+    async function askAI() {
+        const code = document.getElementById('aiCodeInput').value;
+        if(!code) return alert("Pehle code to likhein!");
+        
+        document.getElementById('aiResult').style.display = "block";
+        document.getElementById('solutionText').innerText = "AI soch raha hai...";
+
+        // Abhi ke liye ye simple response dega, baad mein hum asli AI connect karenge
+        setTimeout(() => {
+            document.getElementById('solutionText').innerText = "Fixed Code:\n\nprint('Hello World') \n\nReason: Aapne bracket band nahi kiya tha.";
+        }, 1500);
+    }
+</script>
