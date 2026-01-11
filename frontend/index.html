@@ -1,26 +1,148 @@
-<div class="main-content">
-    <h3>🤖 AI Code Fixer</h3>
-    <div class="form-card" style="flex-direction: column;">
-        <textarea id="aiCodeInput" rows="5" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;" placeholder="Apna kharab code yahan paste karein..."></textarea>
-        <button class="add-btn" style="background: #764ba2; margin-top: 10px;" onclick="askAI()">Fix My Code with AI</button>
-        <div id="aiResult" style="margin-top: 15px; padding: 15px; background: #e8f5e9; border-radius: 8px; display: none;">
-            <strong>AI Solution:</strong> <pre id="solutionText"></pre>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Fixer - Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        /* Header styling with Logo and Logout */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logout-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .logout-btn:hover {
+            background-color: #d93636;
+        }
+        /* Main Input Section */
+        textarea {
+            width: 100%;
+            height: 250px;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        .fix-btn {
+            background-color: #6f42c1;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .fix-btn:hover {
+            background-color: #59359a;
+        }
+        /* Result Box Styling */
+        #resultContainer {
+            margin-top: 30px;
+            display: none; /* Hidden by default */
+        }
+        .result-box {
+            background: #ffffff;
+            border-left: 5px solid #28a745;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        pre {
+            background: #f1f1f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo">🤖 AI Code Fixer</div>
+        <button class="logout-btn" onclick="window.location.href='login.html'">Logout</button>
+    </div>
+
+    <div class="main-content">
+        <textarea id="codeInput" placeholder="Paste your broken code here (Python, C++, JS, HTML)..."></textarea>
+        <br>
+        <button class="fix-btn" onclick="fixMyCode()">Fix My Code with AI</button>
+    </div>
+
+    <div id="resultContainer">
+        <h3>✅ AI Fixed Version:</h3>
+        <div class="result-box">
+            <pre id="fixedCodeDisplay"></pre>
         </div>
     </div>
 
-    </div>
+    <script>
+        // Main function to fetch data from FastAPI Backend
+        async function fixMyCode() {
+            const code = document.getElementById('codeInput').value;
+            const resultContainer = document.getElementById('resultContainer');
+            const display = document.getElementById('fixedCodeDisplay');
 
-<script>
-    async function askAI() {
-        const code = document.getElementById('aiCodeInput').value;
-        if(!code) return alert("Pehle code to likhein!");
-        
-        document.getElementById('aiResult').style.display = "block";
-        document.getElementById('solutionText').innerText = "AI soch raha hai...";
+            if (!code) {
+                alert("Please enter some code first!");
+                return;
+            }
 
-        // Abhi ke liye ye simple response dega, baad mein hum asli AI connect karenge
-        setTimeout(() => {
-            document.getElementById('solutionText').innerText = "Fixed Code:\n\nprint('Hello World') \n\nReason: Aapne bracket band nahi kiya tha.";
-        }, 1500);
-    }
-</script>
+            try {
+                // Sending code to local server (FastAPI)
+                const response = await fetch('http://127.0.0.1:8000/errors/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        error_message: "Fix this code", 
+                        code_snippet: code 
+                    })
+                });
+
+                const data = await response.json();
+
+                // Show the result container and display the fixed code
+                resultContainer.style.display = 'block';
+                display.textContent = data.fixed_code || "AI has processed the code. Please check backend logs.";
+                
+            } catch (error) {
+                // Handles case where Backend server is not running
+                console.error('Error:', error);
+                alert("Connection Failed! Please ensure your Terminal (Backend) is running.");
+            }
+        }
+    </script>
+
+</body>
+</html>
