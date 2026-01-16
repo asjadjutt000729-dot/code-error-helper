@@ -1,57 +1,60 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import google.generativeai as genai
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles #
-from dotenv import load_dotenv
-
-# Load API Key from .env file
-load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
-
-if not api_key:
-    raise ValueError("GEMINI_API_KEY not found in .env file")
-
-# Configure Gemini AI
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel("gemini-1.5-flash") #
 
 app = FastAPI()
 
-# Enable CORS for frontend communication
+# Add CORS (Cross-Origin Resource Sharing) middleware to the application
+# This is required to allow the frontend (running on the browser) to communicate with the FastAPI backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # allow_origins=["*"] permits requests from any domain or origin
+    allow_origins=["*"], 
+    
+    # allow_credentials=True enables the server to support user-based authentication or cookies
+    allow_credentials=True,
+    
+    # allow_methods=["*"] allows all HTTP methods (GET, POST, etc.) for full functionality
     allow_methods=["*"],
+    
+    # allow_headers=["*"] permits any custom headers to be sent in the API request
     allow_headers=["*"],
 )
 
-# Mount the frontend folder to serve HTML files
-# Make sure your folder name is exactly 'frontend'
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+# 1. Gemini API Configuration
+genai.configure(api_key="AIzaSyD9_z1a9MIDAIIr1gY_Ez9DrEM2_rskQLA")
+model = genai.GenerativeModel('gemini-pro')
 
+# Data model for code fix requests
 class CodeRequest(BaseModel):
     code: str
 
+# 2. LOGIN LOGIC: Static user for demonstration
+@app.post("/login")
+async def login(username: str = Body(...), password: str = Body(...)):
+    # Checking against your credentials in screenshot
+    if username == "ayesha" and password == "1234":
+        return {"message": "Login successful", "redirect": "/static/index.html"}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+# 3. AI CODE FIX ENDPOINT
 @app.post("/fix-code")
 async def fix_code(request: CodeRequest):
     try:
-        # Prompt for Gemini AI
-        prompt = f"Fix the following Python code and explain the errors briefly in English:\n\n{request.code}"
-        
+        prompt = f"Fix this Python code. Return ONLY the corrected code:\n\n{request.code}"
         response = model.generate_content(prompt)
-        
-        if not response.text:
-            raise HTTPException(status_code=500, detail="AI returned an empty response")
-            
         return {"fixed_code": response.text}
-    
     except Exception as e:
-        # Handling errors like the 500 error seen in logs
         print(f"Error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="AI Error")
 
-@app.get("/")
-async def root():
-    return {"message": "Server is running! Go to /static/index.html"}
+# 4. SERVING STATIC FILES (Login & Dashboard)
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)

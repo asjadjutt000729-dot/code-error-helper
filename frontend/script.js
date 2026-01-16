@@ -1,49 +1,59 @@
-// Function to handle the code fixing process using Gemini AI
+/**
+ * Function to handle the code fixing process using Gemini AI.
+ * It connects the frontend UI with the FastAPI backend.
+ */
 async function fixCode() {
-    // Get the user's input from the textarea
+    // 1. INPUT RETRIEVAL: Get the user's code from the textarea
     const codeInput = document.getElementById("codeInput").value;
     
-    // Reference UI elements for feedback and results
+    // UI element references for feedback and results
     const button = document.querySelector("button");
     const resultArea = document.getElementById("resultArea");
     const analysisArea = document.getElementById("analysisArea");
     
-    // 1. Validation: Check if the input box is empty
+    // 2. VALIDATION: Ensure the input is not empty before sending
     if (!codeInput.trim()) {
         alert("Please enter some code first!");
         return;
     }
 
-    // 2. UI Feedback: Disable button and show loading status
+    // 3. UI FEEDBACK: Disable the button and show loading status to the user
     button.innerText = "Fixing...";
     button.disabled = true;
     analysisArea.innerText = "Connecting to AI server...";
 
     try {
-        // 3. API Request: Send the code to the FastAPI backend
-        // Using a relative path to handle login/static redirection correctly
-        const response = await fetch("/fix-code", { 
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: codeInput })
-        });
+       // Send the code to the FastAPI backend using the absolute local server URL
+// Using 'http://127.0.0.1:8000' ensures the browser knows exactly where the API is running
+const response = await fetch("http://127.0.0.1:8000/fix-code", { 
+    // Set the request method to POST as required by the backend endpoint
+    method: "POST",
+    
+    // Define the headers to tell the server we are sending JSON data
+    headers: { "Content-Type": "application/json" },
+    
+    // Convert the Python code from the input box into a JSON string for transmission
+    body: JSON.stringify({ code: codeInput })
+});
 
-        // Check if the server responded successfully (Status 200)
-        if (!response.ok) throw new Error("Server response was not ok");
+        // Check if the server responded successfully (HTTP Status 200)
+        if (!response.ok) {
+            throw new Error("Server response was not ok. Status: " + response.status);
+        }
 
-        // Parse the JSON data sent back by the backend
+        // Parse the JSON response sent back by the backend
         const data = await response.json();
         
-        // 4. Update UI: Display the fixed code and success message
+        // 5. UPDATE UI: Display the fixed code and success message
         resultArea.innerText = data.fixed_code;
         analysisArea.innerText = "Success: AI has fixed your code!";
         
     } catch (error) {
-        // 5. Error Handling: Log errors to console and notify the user
+        // 6. ERROR HANDLING: Log connection issues and notify the user
         console.error("Connection Error:", error);
         analysisArea.innerText = "Error: Connection failed. Ensure the FastAPI server is running.";
     } finally {
-        // 6. Finalize: Re-enable the button after the process completes
+        // 7. FINALIZE: Re-enable the button once the process is complete
         button.innerText = "Fix My Code";
         button.disabled = false;
     }
