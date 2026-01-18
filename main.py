@@ -18,13 +18,14 @@ app.add_middleware(
 )
 
 # 2. Gemini AI Configuration (Corrected your key from Jan 18)
+# Use only these lines for configuration:
 API_KEY = "AIzaSyBzYiRDiLdhxR2YkeTMLN3JhMMbClHK94o" 
 genai.configure(api_key=API_KEY)
 
 # Using 'gemini-1.5-flash' to avoid the 404 version error
 # Note: Fixed the extra 's' that was at the end of this line in your message
-model = genai.GenerativeModel('gemini-1.5-flash')
 
+model = genai.GenerativeModel('gemini-1.5-flash-latest')
 # 3. Data Models for requests
 class LoginRequest(BaseModel):
     """Model for user login credentials."""
