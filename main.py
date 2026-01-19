@@ -6,7 +6,7 @@ import uvicorn
 
 app = FastAPI()
 
-# Enable CORS for frontend communication
+# Enable CORS to allow frontend communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,8 +14,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Hugging Face Public API URL (No Key required for basic testing)
-HF_API_URL = "https://api-inference.huggingface.co/models/Salesforce/codet5-base"
+# New Faster Hugging Face Model for Code Repair
+HF_API_URL = "https://api-inference.huggingface.co/models/Salesforce/codet5-large"
 
 class LoginRequest(BaseModel):
     username: str
@@ -26,30 +26,29 @@ class CodeRequest(BaseModel):
 
 @app.post("/login")
 async def login(request: LoginRequest):
-    """Simple login for Ayesha"""
+    """Simple login check for Ayesha"""
     if request.username == "ayesha" and request.password == "1234":
         return {"status": "success"}
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 @app.post("/fix-code")
 async def fix_code(request: CodeRequest):
-    """Uses Hugging Face Free AI to fix Python code"""
+    """Processes code fixing using Hugging Face Free API"""
     try:
-        # English comment: Sending request to Hugging Face model
-        payload = {"inputs": f"Repair this python code: {request.code}"}
+        # English: Preparing the request payload
+        payload = {"inputs": f"Fix python: {request.code}"}
         response = requests.post(HF_API_URL, json=payload)
         
         if response.status_code != 200:
-            raise Exception("AI is currently busy or loading")
+             # Handle model loading or busy state
+             raise Exception("AI model is initializing, please wait.")
 
         result = response.json()
-        
-        # Extracting fixed code from response
-        fixed = result[0]['generated_text'] if isinstance(result, list) else "Error in AI processing"
+        fixed = result[0]['generated_text'] if isinstance(result, list) else "Processing error"
         return {"fixed_code": fixed}
     except Exception as e:
-        print(f"Detailed Error: {str(e)}")
-        raise HTTPException(status_code=500, detail="AI Service Temporarily Offline")
+        print(f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
