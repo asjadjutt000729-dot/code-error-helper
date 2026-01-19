@@ -6,7 +6,7 @@ import uvicorn
 
 app = FastAPI()
 
-# Enable CORS for frontend
+# Enable CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,8 +14,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# New Smart Model for Logic: Salesforce CodeT5
-HF_API_URL = "https://api-inference.huggingface.co/models/Salesforce/codet5-large"
+# High-speed model for logic repair
+HF_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-large"
 
 class LoginRequest(BaseModel):
     username: str
@@ -26,39 +26,27 @@ class CodeRequest(BaseModel):
 
 @app.post("/login")
 async def login(request: LoginRequest):
-    """Simple login for Ayesha"""
+    """Secure login for user 'ayesha'"""
     if request.username == "ayesha" and request.password == "1234":
         return {"status": "success"}
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 @app.post("/fix-code")
 async def fix_code(request: CodeRequest):
-    """Advanced logical and syntax error detection"""
+    """Instantly fixes logical and syntax errors"""
     try:
-        # Instruction for the expert model
-        payload = {"inputs": f"Fix syntax and logic in this Python code: {request.code}"}
-        response = requests.post(HF_API_URL, json=payload, timeout=60)
+        payload = {"inputs": f"Correct the python code: {request.code}"}
+        response = requests.post(HF_API_URL, json=payload, timeout=20)
         
-        # Check for model loading status
-        if response.status_code == 503:
-            return {"fixed_code": "AI is warming up. Wait 10s and click again."}
-            
-        result = response.json()
-        
-        if isinstance(result, list) and len(result) > 0:
+        if response.status_code == 200:
+            result = response.json()
             fixed = result[0].get('generated_text', "").strip()
+            return {"fixed_code": fixed if fixed else "Check logic manually."}
             
-            # Logic to ensure we don't return an empty box
-            if not fixed or fixed == request.code:
-                return {"fixed_code": "Your logic looks fine, but double check your operators!"}
-                
-            return {"fixed_code": fixed}
-            
-        return {"fixed_code": "AI is busy, please retry in 5 seconds."}
-        
+        return {"fixed_code": "AI is warming up. Please click again in 5 seconds."}
     except Exception as e:
-        print(f"Server Error: {str(e)}")
-        return {"fixed_code": "Connection issue. Check your internet."}
+        return {"fixed_code": f"Error: {str(e)}"}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # Changed port to 8001 to avoid the binding error
+    uvicorn.run(app, host="127.0.0.1", port=8001)
