@@ -1,9 +1,8 @@
-import os
-# Importing the new library to fix the FutureWarning
-from google import genai
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import requests
+import uvicorn
 
 app = FastAPI()
 
@@ -15,29 +14,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configuration using the new GenAI client
-# Use your K94o key from Jan 18, 2026
-client = genai.Client(api_key="AIzaSyBzYiRDiLdhxR2YkeTMLN3JhMMbClHK94o")
+# Hugging Face Public API URL (No Key required for basic testing)
+HF_API_URL = "https://api-inference.huggingface.co/models/Salesforce/codet5-base"
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
 class CodeRequest(BaseModel):
     code: str
 
+@app.post("/login")
+async def login(request: LoginRequest):
+    """Simple login for Ayesha"""
+    if request.username == "ayesha" and request.password == "1234":
+        return {"status": "success"}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
 @app.post("/fix-code")
 async def fix_code(request: CodeRequest):
-    """Sends code to AI and returns the fixed version"""
+    """Uses Hugging Face Free AI to fix Python code"""
     try:
-        # Prompting the model for a clean fix
-        response = client.models.generate_content(
-            model="gemini-1.5-flash", 
-            contents=f"Fix this Python code. Return ONLY the corrected code:\n\n{request.code}"
-        )
-        return {"fixed_code": response.text}
+        # English comment: Sending request to Hugging Face model
+        payload = {"inputs": f"Repair this python code: {request.code}"}
+        response = requests.post(HF_API_URL, json=payload)
+        
+        if response.status_code != 200:
+            raise Exception("AI is currently busy or loading")
+
+        result = response.json()
+        
+        # Extracting fixed code from response
+        fixed = result[0]['generated_text'] if isinstance(result, list) else "Error in AI processing"
+        return {"fixed_code": fixed}
     except Exception as e:
-        # Logs specific error for debugging
-        print(f"AI Error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Detailed Error: {str(e)}")
+        raise HTTPException(status_code=500, detail="AI Service Temporarily Offline")
 
 if __name__ == "__main__":
-    import uvicorn
-    # Make sure no other terminal is using port 8000
     uvicorn.run(app, host="127.0.0.1", port=8000)
