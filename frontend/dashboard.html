@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Repair Helper</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 800px; }
+        h1 { color: #333; }
+        textarea { width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 5px; font-family: 'Courier New', monospace; box-sizing: border-box; background: #fafafa; }
+        button { background-color: #28a745; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; font-weight: bold; }
+        button:hover { background-color: #218838; }
+        #resultArea { background-color: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; white-space: pre-wrap; margin-top: 10px; min-height: 50px; border-left: 5px solid #28a745; }
+        #analysisArea { margin-top: 10px; padding: 10px; border-radius: 5px; background-color: #e9ecef; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Code Repair Helper</h1>
+        <p>Enter your Python code below to fix syntax and logic errors.</p>
+        
+        <textarea id="codeInput" rows="10" placeholder="Paste your broken Python code here..."></textarea>
+        <br>
+        <button onclick="fixCode()">Fix My Code</button>
+
+        <div class="output-container">
+            <h3>Corrected Code:</h3>
+            <pre id="resultArea">Fixed code will appear here...</pre>
+            
+            <h3>AI Analysis & Status:</h3>
+            <p id="analysisArea">System ready. Waiting for input...</p> 
+        </div>
+    </div>
+
+    <script>
+        async function fixCode() {
+            const codeInput = document.getElementById('codeInput').value;
+            const resultArea = document.getElementById('resultArea');
+            const analysisArea = document.getElementById('analysisArea');
+            
+            // Getting the user_id saved during login
+            const userId = localStorage.getItem('user_id');
+
+            if (!codeInput) {
+                analysisArea.style.color = "orange";
+                analysisArea.textContent = "Please enter some code first!";
+                return;
+            }
+
+            analysisArea.style.color = "blue";
+            analysisArea.textContent = "AI is thinking... (might take 20s if warming up)";
+            resultArea.textContent = "Processing...";
+
+            try {
+                // Connecting to your FastAPI server on Port 8001
+                const response = await fetch('http://127.0.0.1:8001/fix-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        code: codeInput, 
+                        user_id: userId ? parseInt(userId) : 1 // Logs to database
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Display the AI response
+                    resultArea.textContent = data.fixed_code;
+                    analysisArea.style.color = "green";
+                    analysisArea.textContent = "Success: Solution saved to database!";
+                } else {
+                    throw new Error(data.detail || "Server Error");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                analysisArea.style.color = "red";
+                analysisArea.textContent = "Error: Connection failed. Is terminal running on 8001?";
+                resultArea.textContent = "Could not reach the backend.";
+            }
+        }
+    </script>
+</body>
+</html>
