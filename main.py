@@ -9,7 +9,6 @@ import models
 
 app = FastAPI()
 
-# Enable CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,13 +16,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize database tables
 models.Base.metadata.create_all(bind=engine)
 
-# Correct Router URL for Hugging Face
 API_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-large"
-# Ensure there is a space after 'Bearer'
-HEADERS = {"Authorization": "Bearer AIzaSyDsfRd_DI6l5pHSbOcwsmLDeLIex_kCRrI"}
+# Ensure there is exactly one space after 'Bearer'
+# Token lazmi replace karein naye 'hf_...' token se
+HEADERS = {"Authorization": "Bearer AIzaSyAExPRyuJbIE1OirutqAwesN3oauDW2s0g"}
 
 class LoginRequest(BaseModel):
     name: str
@@ -44,55 +42,38 @@ def get_db():
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.name == request.name).first()
     if not user or user.password != request.password:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-    return {"message": "Login successful", "user_id": user.user_id}
+        raise HTTPException(status_code=401, detail="Invalid login")
+    return {"message": "Success", "user_id": user.user_id}
 
 @app.post("/fix-code")
 async def fix_code(request: CodeRequest, db: Session = Depends(get_db)):
-    payload = {"inputs": f"Fix Python syntax: {request.code}"}
+    payload = {
+        "inputs": f"Complete this Python code: {request.code}", 
+        "options": {"wait_for_model": True}
+    }
     
-    try:
-        # 1. AI API Call
-        response = requests.post(API_URL, headers=HEADERS, json=payload)
-        ai_result = response.json()
-        
-        # 2. Extract ONLY the code or the direct error message
-        if isinstance(ai_result, list) and len(ai_result) > 0:
-            fixed_code = ai_result[0].get("generated_text", "")
-        elif isinstance(ai_result, dict) and "error" in ai_result:
-            fixed_code = ai_result["error"]
-        else:
-            fixed_code = "Processing Error"
-            
-    except Exception as e:
-        fixed_code = f"Connection Error: {str(e)}"
+    # Direct AI Call
+    response = requests.post(API_URL, headers=HEADERS, json=payload, timeout=60)
+    ai_result = response.json()
+    
+    # Taking whatever AI sends back directly
+    fixed_code = str(ai_result)
 
-    # 3. Log to Database (Verified working)
-    new_report = models.UserReport(
-        user_id=request.user_id,
-        error_type="Syntax",
-        language="Python",
-        code_snippet=request.code,
-        error_msg="Analyzed"
-    )
+    # Logging to Database (Verified working by your Green Message)
+    new_report = models.UserReport(user_id=request.user_id, error_type="AI_Test", language="Python", code_snippet=request.code, error_msg="Logged")
     db.add(new_report)
     db.commit()
     db.refresh(new_report)
 
-    new_solution = models.Solution(
-        report_id=new_report.report_id,
-        solution_text=fixed_code,
-        step_to_fix="AI automated fix"
-    )
-    db.add(new_solution)
+    new_sol = models.Solution(report_id=new_report.report_id, solution_text=fixed_code, step_to_fix="AI Result")
+    db.add(new_sol)
     db.commit()
 
     return {"fixed_code": fixed_code}
 
-# Mount static frontend files
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn
-    # Using double underscores for entry point
+    # Use Port 8001
     uvicorn.run(app, host="127.0.0.1", port=8001)
